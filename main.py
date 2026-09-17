@@ -2,6 +2,7 @@ import os
 import sqlite3
 import feedparser
 import requests
+import json
 from google import genai
 
 # Load API credentials from environment variables
@@ -86,18 +87,32 @@ def fetch_top_stories_safe(feed_url, max_items=2):
         notify_alert(f"Failed to fetch feed `{feed_url}`. Error: {e}")
         return []
 
+def get_preferences():
+    """Reads user topic choice from user_preferences.json."""
+    if os.path.exists("user_preferences.json"):
+        try:
+            with open("user_preferences.json", "r") as f:
+                data = json.load(f)
+                return data.get("topic", "General Tech")
+        except Exception:
+            return "General Tech"
+    return "General Tech"
+
 def summarize_with_ai(stories):
     if not stories:
         return None
 
+    target_topic = get_preferences()
+
     prompt = f"""
     You are an executive tech assistant. Summarize the following news items for a quick morning read.
+    Prioritize articles that strictly align with or relate to this preferred user topic: "{target_topic}".
     Format the output cleanly using Telegram HTML rules.
     
-    For each story:
-    - <b><a href="Article Link">Article Title</a></b>
-    - A 2-sentence breakdown: What happened, and why it matters.
-    - 🔗 Read full article: Article Link
+    For each selected story:
+    - <b>Article Title</b>
+    - A 2-sentence breakdown: What happened, and why it matters in relation to {target_topic}.
+    - 🔗 Read full article: [Link]
 
     Stories:
     {stories}
@@ -112,7 +127,7 @@ def summarize_with_ai(stories):
     except Exception as e:
         notify_alert(f"Gemini API Summarization failed. Error: {e}")
         return None
-
+    
 def send_to_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {

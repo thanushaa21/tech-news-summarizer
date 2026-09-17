@@ -30,10 +30,10 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python main.py
 
-      - name: Commit Updated SQLite Database
+      - name: Commit Updated State Files
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add seen_stories.db
-          git commit -m "auto: update seen_stories database [skip ci]" || echo "No changes to commit"
+          git add seen_stories.db user_preferences.json || true
+          git commit -m "auto: update state files [skip ci]" || echo "No changes to commit"
           git push
